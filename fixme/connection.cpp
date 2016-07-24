@@ -28,7 +28,7 @@ private:
 	market& _mark;
 	std::array<unsigned char, ibufflen> _ibuff;
 	std::unique_ptr<parser> _ps;
-	bool _closed = false;
+	bool _stop = false;
 
 	void _do_read();
 	void _process_ibuff(std::size_t len);
@@ -62,11 +62,8 @@ void IMPL::_do_read()
 	auto self{shared_from_this()};
 	_sock.async_read_some(boost::asio::buffer(_ibuff),
 		[this, self](boost::system::error_code ec, std::size_t len) {
-			if (_closed)
-				return;
-			if (ec) {
-				_sock.close();
-				_closed = true;
+			if (_stop || ec) {
+				_stop = true;
 				return;
 			}
 			_process_ibuff(len);
@@ -86,8 +83,8 @@ void IMPL::_ps_feedback(const void *buf, std::size_t len)
 	if (buf == nullptr) {
 		std::cout << "Closing connection..." << std::endl;
 		_sock.cancel();
-		_sock.close();
-		_closed = true;
+		_sock.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+		_stop = true;
 	}
 }
 

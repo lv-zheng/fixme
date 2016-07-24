@@ -5,6 +5,7 @@
 #include <exception>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
 #include "fields.hpp"
 
@@ -26,6 +27,7 @@ private:
 	std::deque<unsigned char> _ibuf;
 	feedback_func _fdb;
 	market& _mark;
+	std::unordered_multimap<unsigned, std::string> _msg;
 
 	static constexpr unsigned char SOH = 0x01;
 	static constexpr unsigned long too_long = 1024;
@@ -89,6 +91,7 @@ void IMPL::feed(const void *vbuf, std::size_t len)
 		} catch (bad_msg&) {
 			std::cout << "Invalid FIX message." << std::endl;
 			_fdb(nullptr, 0);
+			return;
 		}
 	}
 
@@ -100,7 +103,7 @@ void IMPL::feed(const void *vbuf, std::size_t len)
 
 void IMPL::_parse_item(const std::string& s)
 {
-	// Unfinished function
+	// Unfinished function: checksum unchecked.
 
 	auto epos = s.find('=');
 	if (epos == std::string::npos)
@@ -111,6 +114,8 @@ void IMPL::_parse_item(const std::string& s)
 		throw bad_msg();
 
 	std::string value = s.substr(epos + 1);
+
+	_msg.emplace(tag, value);
 
 	std::cout << tit->second << " = " << value << std::endl;
 	switch (_fsm.state) {
@@ -138,6 +143,8 @@ void IMPL::_parse_item(const std::string& s)
 	case fsm_t::Checksum:
 		std::cout << "Message ended." << std::endl;
 		_fsm.state = fsm_t::BeginString;
+		// TODO: notify market with _msg here
+		_msg.clear();
 		break;
 	default:;
 	}
@@ -149,7 +156,7 @@ unsigned long IMPL::_parse_ul(const std::string& s)
 	std::size_t pos;
 	try {
 		ans = std::stoul(s, &pos);
-	} catch (std::runtime_error&) {
+	} catch (std::exception&) {
 		throw bad_msg();
 	}
 	if (pos != s.size())
