@@ -32,7 +32,7 @@ netcat ::1 2333 < anything_invalid # of fixme
 
 ## About the project
 
-Copyright (C) 2016 Lv Zheng <lv.zheng.2015@gmail.com>
+Copyright (C) 2016 Zheng Lv <lv.zheng.2015@gmail.com>
 
 This project is finished with guidance from Morgan Stanley, Shanghai.
 
